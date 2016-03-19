@@ -3,11 +3,32 @@ import gulp from 'gulp';
 import gulpLoadPlugins from 'gulp-load-plugins';
 import browserSync from 'browser-sync';
 import del from 'del';
-import jade from 'gulp-jade';
 import {stream as wiredep} from 'wiredep';
+
+var babelify = require('babelify');
+var browserify = require('browserify');
+var buffer = require('vinyl-buffer');
+var source = require('vinyl-source-stream');
 
 const $ = gulpLoadPlugins();
 const reload = browserSync.reload;
+
+gulp.task('scripts', () => {
+    var bundler = browserify({
+        entries: 'app/scripts/main.js',
+        debug: true
+    });
+    bundler.transform(babelify);
+    bundler.bundle()
+        .pipe($.plumber())
+        .pipe(source('main.js'))
+        .pipe(buffer())
+        .pipe($.sourcemaps.init())
+        .pipe($.uglify()) // Use any gulp plugins you want now
+        .pipe($.sourcemaps.write('.'))
+        .pipe(gulp.dest('.tmp/scripts'))
+        .pipe(reload({stream: true}));
+});
 
 gulp.task('views', () => {
   return gulp.src('app/*.jade')
@@ -31,15 +52,6 @@ gulp.task('styles', () => {
     .pipe(reload({stream: true}));
 });
 
-gulp.task('scripts', () => {
-  return gulp.src('app/scripts/**/*.js')
-    .pipe($.plumber())
-    .pipe($.sourcemaps.init())
-    .pipe($.babel())
-    .pipe($.sourcemaps.write('.'))
-    .pipe(gulp.dest('.tmp/scripts'))
-    .pipe(reload({stream: true}));
-});
 
 function lint(files, options) {
   return () => {
@@ -61,6 +73,7 @@ gulp.task('lint:test', lint('test/spec/**/*.js', testLintOptions));
 
 gulp.task('html', ['styles', 'views', 'scripts'], () => {
   return gulp.src(['app/*.html', '.tmp/*.html'])
+    .pipe($.plumber())
     .pipe($.useref({searchPath: ['.tmp', 'app', '.']}))
     .pipe($.if('*.js', $.uglify()))
     .pipe($.if('*.css', $.cssnano()))
@@ -166,10 +179,11 @@ gulp.task('wiredep', () => {
     .pipe(wiredep({
       ignorePath: /^(\.\.\/)*\.\./
     }))
-    .pipe(gulp.dest('app'));
+    .pipe(gulp.dest('app/layouts'));
 });
 
-gulp.task('build', ['lint', 'html', 'images', 'fonts', 'extras'], () => {
+// To build, run gulp scripts first then gulp build
+gulp.task('build', ['scripts', 'html', 'images', 'fonts', 'extras'], () => {
   return gulp.src('dist/**/*').pipe($.size({title: 'build', gzip: true}));
 });
 
