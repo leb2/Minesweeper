@@ -1,0 +1,29 @@
+extends layouts/default
+
+block content
+    .board
+        .info
+            .remaining 
+                span 99
+                i.material-icons.bomb-icon &#xE1AC;
+            .restart 
+                i.material-icons &#xE5D5;
+            .timer 
+                span.minutes 0
+                span :
+                span.seconds 00
+        .rows 
+            - for (var x=0; x<16; x++)
+                .row
+                    - for (var y=0; y<30; y++)
+                        .tile-container 
+                            .tile(row=x, col=y)
+        .win-screen.hidden
+            div.message You Win 
+            div.time 
+                span.minutes 0
+                span :
+                span.seconds 12
+            div.restart.button Play Again
+        
+    
